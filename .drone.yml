@@ -5,5 +5,5 @@ script:
   - go get github.com/tools/godep
   - /var/cache/drone/bin/godep go test -v ./...
   - /var/cache/drone/bin/godep go build -v
-  - make build
+  - docker build -t registry.docker/build/registrator .
   - docker push registry.docker/build/registrator
