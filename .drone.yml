@@ -1,4 +1,4 @@
-image: registry.docker/buildpack-deps
+image: registry.docker/golang
 volumes:
   - /var/run/docker.sock
 script:
