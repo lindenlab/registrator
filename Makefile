@@ -2,8 +2,8 @@ NAME=registrator
 HARDWARE=$(shell uname -m)
 VERSION=0.4.0
 
-build:
-	docker build -t registrator .
+build: release
+	docker build -t registry.docker/build/registrator:latest .
 
 release:
 	rm -rf release

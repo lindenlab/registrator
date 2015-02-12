@@ -1,0 +1,6 @@
+image: registry.docker/buildpack-deps
+volumes:
+  - /var/run/docker.sock
+script:
+  - make build
+  - docker push registry.docker/build/registrator
