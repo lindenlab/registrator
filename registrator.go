@@ -119,7 +119,6 @@ func main() {
 
 	// Process Docker events
 	for msg := range events {
-		log.Println("registrator: event: ", msg)
 		switch msg.Status {
 		case "start":
 			go bridge.Add(msg.ID)
