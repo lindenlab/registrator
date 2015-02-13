@@ -1,0 +1,9 @@
+image: registry.docker/golang
+volumes:
+  - /var/run/docker.sock
+script:
+  - go get github.com/tools/godep
+  - /var/cache/drone/bin/godep go test -v ./...
+  - /var/cache/drone/bin/godep go build -v
+  - docker build -t registry.docker/build/registrator .
+  - docker push registry.docker/build/registrator

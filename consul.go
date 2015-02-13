@@ -8,23 +8,26 @@ import (
 	"net/url"
 	"strconv"
 
-	"github.com/armon/consul-api"
+	"github.com/hashicorp/consul/api"
 )
 
 const DefaultInterval = "10s"
 
 type ConsulRegistry struct {
-	client *consulapi.Client
+	client *api.Client
 	path   string
 }
 
 func NewConsulRegistry(uri *url.URL) ServiceRegistry {
-	config := consulapi.DefaultConfig()
+	config := api.DefaultConfig()
 	if uri.Host != "" {
 		config.Address = uri.Host
 	}
-	client, err := consulapi.NewClient(config)
+	client, err := api.NewClient(config)
 	assert(err)
+	leader, err := client.Status().Leader()
+	assert(err)
+	log.Println("registrator: consul: Leader: ", leader)
 	return &ConsulRegistry{client: client, path: uri.Path}
 }
 
@@ -41,13 +44,13 @@ func (r *ConsulRegistry) Register(service *Service) error {
 }
 
 func (r *ConsulRegistry) registerWithCatalog(service *Service) error {
-	writeOptions := new(consulapi.WriteOptions)
-	regCatalog := new(consulapi.CatalogRegistration)
+	writeOptions := new(api.WriteOptions)
+	regCatalog := new(api.CatalogRegistration)
 	regCatalog.Datacenter = "dc1"
 	regCatalog.Node = service.pp.HostName
 	regCatalog.Address = service.IP
 
-	regCatalog.Service = new(consulapi.AgentService)
+	regCatalog.Service = new(api.AgentService)
 	regCatalog.Service.ID = service.ID
 	regCatalog.Service.Service = service.Name
 	regCatalog.Service.Port = service.Port
@@ -61,7 +64,7 @@ func (r *ConsulRegistry) registerWithCatalog(service *Service) error {
 }
 
 func (r *ConsulRegistry) registerWithAgent(service *Service) error {
-	registration := new(consulapi.AgentServiceRegistration)
+	registration := new(api.AgentServiceRegistration)
 	registration.ID = service.ID
 	registration.Name = service.Name
 	registration.Port = service.Port
@@ -71,8 +74,8 @@ func (r *ConsulRegistry) registerWithAgent(service *Service) error {
 	return r.client.Agent().ServiceRegister(registration)
 }
 
-func (r *ConsulRegistry) buildCheck(service *Service) *consulapi.AgentServiceCheck {
-	check := new(consulapi.AgentServiceCheck)
+func (r *ConsulRegistry) buildCheck(service *Service) *api.AgentServiceCheck {
+	check := new(api.AgentServiceCheck)
 	if path := service.Attrs["check_http"]; path != "" {
 		check.Script = fmt.Sprintf("check-http %s %s %s", service.pp.Container.ID[:12], service.pp.ExposedPort, path)
 	} else if cmd := service.Attrs["check_cmd"]; cmd != "" {
@@ -98,7 +101,7 @@ func (r *ConsulRegistry) registerWithKV(service *Service) error {
 	path := r.path[1:] + "/" + service.Name + "/" + service.ID
 	port := strconv.Itoa(service.Port)
 	addr := net.JoinHostPort(service.IP, port)
-	_, err := r.client.KV().Put(&consulapi.KVPair{Key: path, Value: []byte(addr)}, nil)
+	_, err := r.client.KV().Put(&api.KVPair{Key: path, Value: []byte(addr)}, nil)
 	if err != nil {
 		log.Println("registrator: consul: failed to register service:", err)
 	}
@@ -122,8 +125,8 @@ func (r *ConsulRegistry) Refresh(service *Service) error {
 }
 
 func (r *ConsulRegistry) deregisterWithCatalog(service *Service) error {
-	writeOptions := new(consulapi.WriteOptions)
-	deregCatalog := new(consulapi.CatalogDeregistration)
+	writeOptions := new(api.WriteOptions)
+	deregCatalog := new(api.CatalogDeregistration)
 	deregCatalog.Datacenter = "dc1"
 	deregCatalog.Node = service.pp.HostName
 	deregCatalog.Address = service.IP
