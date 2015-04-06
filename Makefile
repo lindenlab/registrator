@@ -1,28 +1,42 @@
-NAME=registrator
-VERSION=$(shell cat VERSION)
+APP_NAME := registrator
+SRC_DIR := src/github.com/gliderlabs
+APP_DIR := $(SRC_DIR)/$(APP_NAME)
 
-dev:
-	docker build -f Dockerfile.dev -t $(NAME):dev .
-	docker run --rm \
-		-v /var/run/docker.sock:/tmp/docker.sock \
-		$(NAME):dev /bin/registrator consul:
+REGISTRY := registry.docker
+BUILD_IMAGE := $(REGISTRY)/golang
+APP_IMAGE := $(REGISTRY)/$(APP_NAME)
+DOCKER_RUN := docker run -it --rm -v "$(shell pwd)":/go $(BUILD_IMAGE)
+UID := $(shell id -u)
+GID := $(shell id -g)
 
-build:
-	mkdir -p build
-	docker build -t $(NAME):$(VERSION) .
-	docker save $(NAME):$(VERSION) | gzip -9 > build/$(NAME)_$(VERSION).tgz
+all: test binary
 
-release:
-	rm -rf release && mkdir release
-	go get github.com/progrium/gh-release/...
-	cp build/* release
-	gh-release create gliderlabs/$(NAME) $(VERSION) \
-		$(shell git rev-parse --abbrev-ref HEAD) $(VERSION)
+$(APP_DIR):
+	mkdir -p $(SRC_DIR)
+	ln -s ../../../ $(APP_DIR)
 
-circleci:
-	rm ~/.gitconfig
-ifneq ($(CIRCLE_BRANCH), release)
-	echo build-$$CIRCLE_BUILD_NUM > VERSION
-endif
+deps: $(APP_DIR)
 
-.PHONY: build release
+binary: deps
+	$(DOCKER_RUN) bash -c "cd /go/$(APP_DIR); go get && go build"
+	$(MAKE) chown
+
+test: deps
+	$(DOCKER_RUN) bash -c "cd /go/$(APP_DIR); go get && go test"
+	$(MAKE) chown
+
+docker: binary 
+	docker build -t $(APP_IMAGE) .
+
+push: docker
+	docker push $(APP_IMAGE)
+
+chown:
+	$(DOCKER_RUN) chown -R $(UID):$(GID) /go/bin /go/pkg /go/src 
+	test -f $(APP_NAME) && $(DOCKER_RUN) chown -R $(UID):$(GID) /go/$(APP_NAME) || true
+
+clean:
+	$(MAKE) chown || true
+	rm -rf bin pkg src $(APP_NAME)
+
+.PHONY: all binary test chown clean
