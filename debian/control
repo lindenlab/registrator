@@ -1,0 +1,11 @@
+Source: registrator
+Maintainer: Don Kjer <don@lindenlab.com>
+Section: misc
+Priority: extra
+Standards-Version: 3.9.2
+Build-Depends: debhelper (>= 9), dh-systemd (>= 1.5)
+
+Package: registrator
+Architecture: any
+Description: Service registry bridge for Docker
+ Service registry bridge for Docker
