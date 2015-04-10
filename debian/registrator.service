@@ -9,8 +9,9 @@ Wants=cloud-final.service consul.target swarm.service
 After=cloud-final.service consul.target swarm.service
 
 [Service]
+EnvironmentFile=/etc/default/ec2meta 
 EnvironmentFile=/etc/default/registrator
-ExecStart=/usr/bin/registrator $REGISTRATOR_OPTS
+ExecStart=/bin/bash -c "DOCKER_HOST=tcp://${PRIVATE_IPV4}:2375 /usr/bin/registrator $REGISTRATOR_OPTS" 
 Restart=always
 RestartSec=60
 
