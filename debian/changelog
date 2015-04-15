@@ -1,10 +1,10 @@
-registrator (5.0~linden1) UNRELEASED; urgency=medium
+registrator (5.0-2~linden) UNRELEASED; urgency=medium
 
   * Fixing systemd configuration
 
  -- Don Kjer <don@lindenlab.com>  Fri, 10 Apr 2015 00:06:51 +0000
 
-registrator (5.0) unstable; urgency=medium
+registrator (5.0-1~linden) unstable; urgency=medium
 
   * Initial release.
 
