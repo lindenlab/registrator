@@ -2,16 +2,15 @@
 WantedBy=multi-user.target
 
 [Unit]
-Requires=consul.target swarm.service
 Description=Service registry bridge for Docker
 Documentation=https://github.com/lindenlab/registrator
-Wants=cloud-final.service consul.target swarm.service
-After=cloud-final.service consul.target swarm.service
+After=ll-pgi-config.target docker.service
+Requires=ll-pgi-config.target docker.service
 
 [Service]
 EnvironmentFile=/etc/default/ec2meta 
 EnvironmentFile=/etc/default/registrator
-ExecStart=/bin/bash -c "DOCKER_HOST=tcp://${PRIVATE_IPV4}:2375 /usr/bin/registrator $REGISTRATOR_OPTS" 
+ExecStart=/bin/bash -c "DOCKER_HOST=tcp://${PRIVATE_IPV4}:2375 /usr/bin/registrator $REGISTRATOR_OPTS"
 Restart=always
 RestartSec=60
 
