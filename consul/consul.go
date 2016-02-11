@@ -66,8 +66,10 @@ func (r *ConsulAdapter) Register(service *bridge.Service) error {
 func (r *ConsulAdapter) buildCheck(service *bridge.Service) *consulapi.AgentServiceCheck {
 	check := new(consulapi.AgentServiceCheck)
 	if path := service.Attrs["check_http"]; path != "" {
-		//check.Script = fmt.Sprintf("check-http %s %s %s", service.Origin.ContainerID[:12], service.Origin.ExposedPort, path)
-		check.HTTP = fmt.Sprintf("http://%s:%s%s", service.Origin.HostIP, service.Origin.HostPort, path)
+		check.HTTP = fmt.Sprintf("http://%s:%d%s", service.IP, service.Port, path)
+		if timeout := service.Attrs["check_timeout"]; timeout != "" {
+			check.Timeout = timeout
+		}
 	} else if cmd := service.Attrs["check_cmd"]; cmd != "" {
 		check.Script = fmt.Sprintf("check-cmd %s %s %s", service.Origin.ContainerID[:12], service.Origin.ExposedPort, cmd)
 	} else if script := service.Attrs["check_script"]; script != "" {
@@ -93,4 +95,25 @@ func (r *ConsulAdapter) Deregister(service *bridge.Service) error {
 
 func (r *ConsulAdapter) Refresh(service *bridge.Service) error {
 	return nil
+}
+
+func (r *ConsulAdapter) Services() ([]*bridge.Service, error) {
+	services, err := r.client.Agent().Services()
+	if err != nil {
+		return []*bridge.Service{}, err
+	}
+	out := make([]*bridge.Service, len(services))
+	i := 0
+	for _, v := range services {
+		s := &bridge.Service{
+			ID:   v.ID,
+			Name: v.Service,
+			Port: v.Port,
+			Tags: v.Tags,
+			IP:   v.Address,
+		}
+		out[i] = s
+		i++
+	}
+	return out, nil
 }
